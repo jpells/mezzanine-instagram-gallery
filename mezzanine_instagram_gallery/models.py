@@ -116,24 +116,25 @@ class InstagramMedia(models.Model):
         if last_media:
             min_time = time.mktime(last_media.created.utctimetuple())
 
-        user = InstagramUser.objects.all()[0]
-        api = InstagramAPI(access_token=user.access_token)
-        medias = api.user_recent_media(min_timestamp=min_time, count=count)
-        if not (medias and medias[0]):
-            raise StopIteration
+        users = InstagramUser.objects.all()
+        for user in users:
+            api = InstagramAPI(access_token=user.access_token)
+            medias = api.user_recent_media(user_id=user.instagram_id, min_timestamp=min_time, count=count)
+            if not (medias and medias[0]):
+                raise StopIteration
 
-        for media in medias[0]:
-            if cls.objects.filter(instagram_id=media.id).exists():
-                # TODO: check and update metadata
-                continue
+            for media in medias[0]:
+                if cls.objects.filter(instagram_id=media.id).exists():
+                    # TODO: check and update metadata
+                    continue
 
-            caption = media.caption and media.caption.text or u''
-            insta_media = cls(instagram_id=media.id,
-                              created=media.created_time,
-                              caption=caption,
-                              comment_count=media.comment_count,
-                              like_count=media.like_count,
-                              url=media.link or u'',
-                              thumbnail_url=media.images['thumbnail'].url,
-                              standard_url=media.get_standard_resolution_url())
-            yield insta_media
+                caption = media.caption and media.caption.text or u''
+                insta_media = cls(instagram_id=media.id,
+                                  created=media.created_time,
+                                  caption=caption,
+                                  comment_count=media.comment_count,
+                                  like_count=media.like_count,
+                                  url=media.link or u'',
+                                  thumbnail_url=media.images['thumbnail'].url,
+                                  standard_url=media.get_standard_resolution_url())
+                yield insta_media
